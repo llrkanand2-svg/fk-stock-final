@@ -1,0 +1,15 @@
+{
+  "name": "fk-stock-checker",
+  "version": "1.0.0",
+  "description": "Flipkart Real-Time Stock Checker",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3",
+    "axios": "^1.6.8",
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.19.2"
+  }
+}
