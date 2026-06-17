@@ -6,10 +6,10 @@ const fs = require('fs');
 const path = require('path');
 
 // --- 🔒 CONFIGURATION HARDLOCKED ---
-const BOT_TOKEN = '8901855590:AAHFlMQ_LNzOrJ0noP8BPQgnkSAZ2mRo2uc'; // Aapka naya stock bot token
-const ADMIN_CHAT_ID = '7485181331'; // Aapki correct admin ID
-const CHECK_INTERVAL = 15000; // STRICT 15 SECONDS PRECISION LOOP
-const RENDER_URL = 'https://fk-stock-final.onrender.com'; // 🔥 Aapka naya dynamic exact URL locked
+const BOT_TOKEN = '8901855590:AAHFlMQ_LNzOrJ0noP8BPQgnkSAZ2mRo2uc'; 
+const ADMIN_CHAT_ID = '7485181331'; 
+const CHECK_INTERVAL = 15000; // STRICT 15 SECONDS
+const RENDER_URL = 'https://fk-stock-final.onrender.com'; 
 const DB_FILE = path.join(__dirname, 'database.json');
 // ----------------------------------------
 
@@ -70,23 +70,21 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 app.use(bot.webhookCallback('/secret-telegram-webhook'));
 
-app.get('/', (req, res) => res.status(200).send('Stock Checker Engine Webhook Live!'));
+app.get('/', (req, res) => res.status(200).send('Stock Engine Core Online!'));
 
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Stock Server listening on port ${PORT}`);
     try {
-        // Force flush pichla fasa session and set new Webhook
         await bot.telegram.deleteWebhook({ drop_pending_updates: true });
         await bot.telegram.setWebhook(`${RENDER_URL}/secret-telegram-webhook`, {
             drop_pending_updates: true 
         });
-        console.log(`🎯 Stock Webhook successfully binded on: ${RENDER_URL}`);
+        console.log("🎯 Webhook strictly configured.");
     } catch (err) {
-        console.log("⚠️ Webhook binding error: ", err.message);
+        console.log("⚠️ Webhook setup warning: ", err.message);
     }
 });
 
-// Self-ping loop to keep server alive
 setInterval(() => {
     axios.get(RENDER_URL).catch(() => {}); 
 }, 15000); 
@@ -136,7 +134,7 @@ bot.start((ctx) => {
         return ctx.reply(`🤖 *Welcome to Flipkart Stock Checker Pro!* Ready to sniff targets!`, getProKeyboard());
     }
     
-    ctx.reply(`🔒 **Access Denied!**\n\nAap abhi approved nahi hain.\nAapki Telegram ID: \`${userId}\`\n\nAdmin ko automatic request bhej di gayi hai, wait karo.`);
+    ctx.reply(`🔒 **Access Denied!**\n\nAap abhi approved nahi hain.\nAapki Telegram ID: \`${userId}\`\n\nAdmin ko automatic request bhej di gayi hai.`);
     
     bot.telegram.sendMessage(ADMIN_CHAT_ID, 
         `🚨 **New Stock Bot Request!**\n\n👤 Name: ${name}\n🆔 ID: \`${userId}\`\n\n👉 Action lein:`,
@@ -202,7 +200,7 @@ function setupStockScraperSystem(ctx, fkLink) {
         id: pid, url: fkLink, mode: 'Stock Checker', interval: intervalId
     });
 
-    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nHar 15 second mein checking chalu ho gayi hai boss!`);
+    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nAnti-Block Mobile Engine configured. 15 second mein check ho raha hai boss!`);
     checkProductStockStatus(ctx, chatId, pid, fkLink);
 }
 
@@ -227,6 +225,7 @@ function killAllOperations(ctx) {
     } else { ctx.reply("⚠️ Koyi active operation chal hi nahi rahi."); }
 }
 
+// --- 🔬 ANTI-BLOCK HIGH-SPEED SNIFFER ENGINE ---
 async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
     if (!activeUsers[chatId]) return;
     const itemIndex = activeUsers[chatId].findIndex(item => item.id === pid);
@@ -235,20 +234,27 @@ async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
     try {
         const response = await axios.get(originalUrl, {
             headers: { 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9'
+                // 🔥 REAL ANDROID USER AGENT (Flipkart breaks on script-looking agents)
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             },
             timeout: 12000 
         });
         
         const htmlLower = response.data.toString().toLowerCase();
         
-        // Accurate in-stock indicators (Buy Now / Add To Cart Buttons)
-        const hasBuyNowButton = htmlLower.includes('buy now') || htmlLower.includes('add to cart');
-        
-        // Strict negative validation filter
-        const isOutOfStockText = htmlLower.includes('currently unavailable') || htmlLower.includes('this item is currently out of stock');
+        // Mobile Layout and Desktop layout triggers
+        const hasBuyNowButton = htmlLower.includes('buy now') || 
+                                htmlLower.includes('add to cart') || 
+                                htmlLower.includes('go to cart');
+                                
+        const isOutOfStockText = htmlLower.includes('currently unavailable') || 
+                                htmlLower.includes('this item is currently out of stock');
 
+        // IF IN STOCK AND NOT BLOCKED BY SCRAPER FILTER
         if (hasBuyNowButton && !isOutOfStockText) {
             await bot.telegram.sendMessage(chatId, 
                 `🚨 **STOCK AAGYA HAII LGA JAKE FASTTT POORA LOOT LO** 🚨\n\n🔥 Bhai Flipkart pr stock wapas aa gaya hai, turant click karo aur order maro! 🔥\n\n🔗 Link:\n${originalUrl}\n\n🛑 Stop Tracking: /stop${itemIndex + 1}`,
