@@ -4,7 +4,7 @@ const cheerio = require('cheerio');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto'); // 🔥 Unique ID banane ke liye
+const crypto = require('crypto');
 
 // --- 🔒 CONFIGURATION HARDLOCKED ---
 const BOT_TOKEN = '8901855590:AAHFlMQ_LNzOrJ0noP8BPQgnkSAZ2mRo2uc'; 
@@ -97,6 +97,7 @@ const getProKeyboard = () => {
 bot.on('callback_query', async (ctx) => {
     const data = ctx.callbackQuery.data;
     const clickerId = ctx.from.id.toString();
+    const chatId = ctx.chat.id.toString();
     
     if (data.startsWith('approve_')) {
         if (clickerId !== ADMIN_CHAT_ID.toString()) return ctx.answerCbQuery("Unauthorized! ❌").catch(() => {});
@@ -118,6 +119,28 @@ bot.on('callback_query', async (ctx) => {
         if (clickerId !== ADMIN_CHAT_ID.toString()) return ctx.answerCbQuery("Unauthorized! ❌").catch(() => {});
         await ctx.answerCbQuery("User Declined! ❌").catch(() => {});
         await ctx.editMessageText(`${ctx.callbackQuery.message.text}\n\n❌ **Status: Declined!**`).catch(() => {});
+        return;
+    }
+
+    if (data.startsWith('stoptrack_')) {
+        const secretId = data.split('_')[1].trim();
+        
+        if (!activeUsers[chatId] || activeUsers[chatId].length === 0) {
+            return ctx.answerCbQuery("⚠️ Koyi active operation nahi hai!", true).catch(() => {});
+        }
+
+        const itemIndex = activeUsers[chatId].findIndex(item => item.secretId === secretId);
+
+        if (itemIndex === -1) {
+            return ctx.answerCbQuery("⚠️ Pehle hi stopped ya removed hai!", true).catch(() => {});
+        }
+
+        const removedItem = activeUsers[chatId][itemIndex];
+        clearInterval(removedItem.interval); 
+        activeUsers[chatId].splice(itemIndex, 1); 
+
+        await ctx.answerCbQuery("Stopped successfully! 🛑").catch(() => {});
+        await ctx.editMessageText(`🛑 <b>Target Radar Se Saaf!</b>\n\n📦 <b>Stopped for:</b>\n<code>${removedItem.title}</code>`, { parse_mode: 'HTML' }).catch(() => {});
         return;
     }
 });
@@ -158,28 +181,6 @@ bot.on('text', async (ctx, next) => {
     if (!isUserApproved(userId)) return;
 
     const textInput = ctx.message.text.trim();
-    const chatId = ctx.chat.id.toString();
-
-    // 🔥 NEW SECRET UNIQUE ID STOP COMMAND ENGINE
-    if (textInput.startsWith('/stop_')) {
-        const secretId = textInput.replace('/stop_', '').trim();
-        
-        if (!activeUsers[chatId] || activeUsers[chatId].length === 0) {
-            return ctx.reply("⚠️ **Koyi active operation radar par nahi hai boss!**");
-        }
-
-        const itemIndex = activeUsers[chatId].findIndex(item => item.secretId === secretId);
-
-        if (itemIndex === -1) {
-            return ctx.reply("⚠️ **Yeh product pehle hi remove ho chuka hai ya command galat hai!**");
-        }
-
-        const removedItem = activeUsers[chatId][itemIndex];
-        clearInterval(removedItem.interval);
-        activeUsers[chatId].splice(itemIndex, 1);
-
-        return ctx.reply(`🛑 <b>Target successfully radar se permanent saaf!</b>\nStopped for:\n<code>${removedItem.title}</code>`, { parse_mode: 'HTML', disable_web_page_preview: true });
-    }
 
     if (['🚨 start stock track', '📋 list active', '🛑 stop all operations'].includes(textInput.toLowerCase())) return;
 
@@ -189,7 +190,7 @@ bot.on('text', async (ctx, next) => {
 
         if (!fkLink) return ctx.reply("❌ Valid Flipkart link bhejo bhai!", getProKeyboard());
         
-        ctx.reply("⏳ Product data aur name fetch kiya ja raha hai...");
+        // 🔥 Extra message completely removed from here
         setupStockScraperSystem(ctx, fkLink);
         delete userSessions[userId]; 
     }
@@ -212,14 +213,14 @@ async function setupStockScraperSystem(ctx, fkLink) {
     if (!activeUsers[chatId]) activeUsers[chatId] = [];
     const intervalId = setInterval(() => { checkProductStockStatus(ctx, chatId, pid, fkLink); }, CHECK_INTERVAL);
 
-    // 🔥 Generate a random short 6 character unique hex ID for this specific link
     const uniqueSecretId = crypto.randomBytes(3).toString('hex');
 
     activeUsers[chatId].push({
         id: pid, secretId: uniqueSecretId, url: fkLink, title: productTitle, mode: 'Stock Checker', interval: intervalId
     });
 
-    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\n📦 **Product:** <code>${productTitle}</code>\n\n15 second mein strict check chalu!`, { parse_mode: 'HTML' });
+    // 🔥 ONLY THIS SINGLE SATEEK MESSAGE WILL BE SENT NOW
+    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\n📦 **Model:** <code>${productTitle}</code>\n\n15 second mein strict check locked hai boss!`, { parse_mode: 'HTML' });
     checkProductStockStatus(ctx, chatId, pid, fkLink);
 }
 
@@ -228,11 +229,18 @@ function displayActiveTracks(ctx) {
     if (!activeUsers[chatId] || activeUsers[chatId].length === 0) return ctx.reply("😴 Koyi active target stock radar par nahi hai.");
     
     let msg = "📋 <b>Radar Par Active Stock Targets Matrix:</b>\n\n";
-    activeUsers[chatId].forEach((item, index) => {
-        msg += `🔢 <b>Target [${index + 1}]</b>\n📦 <b>Name:</b> <code>${item.title}</code>\n⚙️ <b>Mode:</b> <code>[${item.mode}]</code>\n🔗 <b>Link:</b> ${item.url}\n🛑 <b>Stop Command:</b> /stop_${item.secretId}\n\n`;
-    });
+    ctx.reply(msg, { parse_mode: 'HTML' }).catch(() => {});
     
-    ctx.reply(msg, { parse_mode: 'HTML', disable_web_page_preview: true });
+    activeUsers[chatId].forEach((item, index) => {
+        let card = `🔢 <b>Target [${index + 1}]</b>\n📦 <b>Name:</b> <code>${item.title}</code>\n⚙️ <b>Mode:</b> <code>[${item.mode}]</code>\n🔗 <b>Link:</b> ${item.url}`;
+        ctx.reply(card, {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true,
+            ...Markup.inlineKeyboard([
+                Markup.button.callback('🛑 Stop Checking', `stoptrack_${item.secretId}`)
+            ])
+        }).catch(() => {});
+    });
 }
 
 function killAllOperations(ctx) {
@@ -273,14 +281,18 @@ async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
                                 htmlLower.includes('this item is currently out of stock');
 
         if (hasBuyNowButton && !isOutOfStockText) {
-            // 🔥 FIXED LOGIC: Har alert text ke niche us product ki fixed Unique Stop link aayegi!
+            
             let alertMsg = `🚨 **STOCK AAGYA HAII LGA JAKE FASTTT POORA LOOT LO** 🚨\n\n` +
                            `📦 **Product:** ${currentItem.title}\n\n` +
                            `🔥 Bhai Flipkart pr stock wapas aa gaya hai, turant click karo aur order maro! 🔥\n\n` +
-                           `🔗 **Order Link:**\n${originalUrl}\n\n` +
-                           `🛑 **Stop Tracking Current:** /stop_${currentItem.secretId}`;
+                           `🔗 **Order Link:**\n${originalUrl}`;
 
-            await bot.telegram.sendMessage(chatId, alertMsg, { parse_mode: 'HTML' }).catch(() => {});
+            await bot.telegram.sendMessage(chatId, alertMsg, { 
+                parse_mode: 'HTML',
+                ...Markup.inlineKeyboard([
+                    Markup.button.callback('🛑 Stop Checking', `stoptrack_${currentItem.secretId}`)
+                ])
+            }).catch(() => {});
         }
     } catch (err) {}
 }
