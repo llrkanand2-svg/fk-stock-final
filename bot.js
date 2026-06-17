@@ -79,10 +79,7 @@ app.listen(PORT, '0.0.0.0', async () => {
         await bot.telegram.setWebhook(`${RENDER_URL}/secret-telegram-webhook`, {
             drop_pending_updates: true 
         });
-        console.log("🎯 Webhook strictly configured.");
-    } catch (err) {
-        console.log("⚠️ Webhook setup warning: ", err.message);
-    }
+    } catch (err) {}
 });
 
 setInterval(() => {
@@ -131,7 +128,7 @@ bot.start((ctx) => {
     initDatabase();
     if (isUserApproved(userId)) {
         delete userSessions[userId]; 
-        return ctx.reply(`🤖 *Welcome to Flipkart Stock Checker Pro!* Ready to sniff targets!`, getProKeyboard());
+        return ctx.reply("🤖 *Welcome to Flipkart Stock Checker Pro!* Ready to sniff targets!", getProKeyboard());
     }
     
     ctx.reply(`🔒 **Access Denied!**\n\nAap abhi approved nahi hain.\nAapki Telegram ID: \`${userId}\`\n\nAdmin ko automatic request bhej di gayi hai.`);
@@ -160,9 +157,10 @@ bot.on('text', async (ctx, next) => {
     if (!isUserApproved(userId)) return;
 
     const textInput = ctx.message.text.trim().toLowerCase();
+    const chatId = ctx.chat.id.toString();
 
+    // 🔥 STRICT SERIAL VALUE EXTRACTOR (/stop1, /stop2, /stop3)
     if (textInput.startsWith('/stop') && textInput !== '/stop_all') {
-        const chatId = ctx.chat.id.toString();
         const numStr = textInput.replace('/stop', '').trim();
         const index = parseInt(numStr) - 1;
 
@@ -174,7 +172,7 @@ bot.on('text', async (ctx, next) => {
         clearInterval(removedItem.interval);
         activeUsers[chatId].splice(index, 1);
 
-        return ctx.reply(`🛑 <b>Target [${index + 1}] radar se permanent saaf!</b>\nTracking successfully stopped for:\n<code>${removedItem.url}</code>`, { parse_mode: 'HTML', disable_web_page_preview: true });
+        return ctx.reply(`🛑 <b>Target [${index + 1}] radar se permanent saaf!</b>\nTracking successfully stopped for:\n<code>${removedItem.title}</code>`, { parse_mode: 'HTML', disable_web_page_preview: true });
     }
 
     if (['🚨 start stock track', '📋 list active', '🛑 stop all operations'].includes(textInput)) return;
@@ -183,24 +181,36 @@ bot.on('text', async (ctx, next) => {
         const args = ctx.message.text.replace(/\n/g, ' ').split(' ').filter(arg => arg.trim() !== '');
         let fkLink = args.find(arg => arg.includes('flipkart.com') || arg.includes('fkrt.it'));
 
-        if (!fkLink) return ctx.reply(`❌ Valid Flipkart link bhejo bhai!`, getProKeyboard());
+        if (!fkLink) return ctx.reply("❌ Valid Flipkart link bhejo bhai!", getProKeyboard());
+        
+        ctx.reply("⏳ Product data aur name fetch kiya ja raha hai...");
         setupStockScraperSystem(ctx, fkLink);
         delete userSessions[userId]; 
     }
 });
 
-function setupStockScraperSystem(ctx, fkLink) {
+async function setupStockScraperSystem(ctx, fkLink) {
     const chatId = ctx.chat.id.toString();
     let pid = Buffer.from(fkLink).toString('base64').substring(0, 10);
+    let productTitle = "Flipkart Product";
+
+    try {
+        const res = await axios.get(fkLink, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+        });
+        const $ = cheerio.load(res.data);
+        let titleText = $('title').text().split('|')[0].trim();
+        if (titleText) productTitle = titleText;
+    } catch (e) {}
 
     if (!activeUsers[chatId]) activeUsers[chatId] = [];
     const intervalId = setInterval(() => { checkProductStockStatus(ctx, chatId, pid, fkLink); }, CHECK_INTERVAL);
 
     activeUsers[chatId].push({
-        id: pid, url: fkLink, mode: 'Stock Checker', interval: intervalId
+        id: pid, url: fkLink, title: productTitle, mode: 'Stock Checker', interval: intervalId
     });
 
-    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nAnti-Block Mobile Engine configured. 15 second mein strict check chalu!`);
+    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\n📦 **Product:** <code>${productTitle}</code>\n\n15 second mein strict check chalu!`, { parse_mode: 'HTML' });
     checkProductStockStatus(ctx, chatId, pid, fkLink);
 }
 
@@ -210,7 +220,7 @@ function displayActiveTracks(ctx) {
     
     let msg = "📋 <b>Radar Par Active Stock Targets Matrix:</b>\n\n";
     activeUsers[chatId].forEach((item, index) => {
-        msg += `🔢 <b>Target [${index + 1}]</b>\n⚙️ <b>Mode:</b> <code>[${item.mode}]</code>\n🔗 <b>Link:</b> ${item.url}\n🛑 <b>Stop Command:</b> /stop${index + 1}\n\n`;
+        msg += `🔢 <b>Target [${index + 1}]</b>\n📦 <b>Name:</b> <code>${item.title}</code>\n⚙️ <b>Mode:</b> <code>[${item.mode}]</code>\n🔗 <b>Link:</b> ${item.url}\n🛑 <b>Stop Command:</b> /stop${index + 1}\n\n`;
     });
     
     ctx.reply(msg, { parse_mode: 'HTML', disable_web_page_preview: true });
@@ -225,13 +235,15 @@ function killAllOperations(ctx) {
     } else { ctx.reply("⚠️ Koyi active operation chal hi nahi rahi."); }
 }
 
-// --- 🔬 ANTI-BLOCK PINCODE SNIFFER ENGINE ---
+// --- 🔬 HIGH-PRECISION RE-INDEXING STOCK ENGINE ---
 async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
     if (!activeUsers[chatId]) return;
     
-    // 🔥 LIVE RE-CALCULATE SERIAL NUMBER MATRIX EVERY HIT
-    const itemIndex = activeUsers[chatId].findIndex(item => item.id === pid);
-    if (itemIndex === -1) return;
+    // 🔥 LIVE RE-CALCULATE EXACT ARRAY POSITION EVERY HIT TO AVOID SHIFTING GLITCH
+    const currentItemIndex = activeUsers[chatId].findIndex(item => item.id === pid);
+    if (currentItemIndex === -1) return; // Means product was stopped manually
+    
+    const currentItem = activeUsers[chatId][currentItemIndex];
 
     try {
         const response = await axios.get(originalUrl, {
@@ -239,8 +251,6 @@ async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
                 'Cookie': 'pincode=125121; sn=125121; amsn=125121;'
             },
             timeout: 12000 
@@ -256,13 +266,17 @@ async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
                                 htmlLower.includes('this item is currently out of stock');
 
         if (hasBuyNowButton && !isOutOfStockText) {
-            // 🔥 Strict Dynamic Serial Number mapping
-            const serialNumber = itemIndex + 1;
+            // 🔥 REALTIME INDEX MAPPING: Har hit pe naya list serial number nikalega!
+            const realTimeSerialNumber = currentItemIndex + 1;
 
-            await bot.telegram.sendMessage(chatId, 
-                `🚨 **STOCK AAGYA HAII LGA JAKE FASTTT POORA LOOT LO** 🚨\n\n🔥 Bhai Flipkart pr stock wapas aa gaya hai, turant click karo aur order maro! 🔥\n\n🔗 Link:\n${originalUrl}\n\n🛑 Stop Tracking: /stop${serialNumber}`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
+            let alertMsg = `🚨 **STOCK AAGYA HAII LGA JAKE FASTTT POORA LOOT LO** 🚨\n\n` +
+                           `📦 **Product:** ${currentItem.title}\n` +
+                           `🔢 **Target Serial:** [${realTimeSerialNumber}]\n\n` +
+                           `🔥 Bhai Flipkart pr stock wapas aa gaya hai, turant click karo aur order maro! 🔥\n\n` +
+                           `🔗 **Order Link:**\n${originalUrl}\n\n` +
+                           `🛑 **Stop Tracking Current:** /stop${realTimeSerialNumber}`;
+
+            await bot.telegram.sendMessage(chatId, alertMsg, { parse_mode: 'HTML' }).catch(() => {});
         }
     } catch (err) {}
 }
