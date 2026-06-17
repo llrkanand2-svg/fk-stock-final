@@ -6,14 +6,12 @@ const fs = require('fs');
 const path = require('path');
 
 // --- 🔒 CONFIGURATION HARDLOCKED ---
-const BOT_TOKEN = '8901855590:AAHFlMQ_LNzOrJ0noP8BPQgnkSAZ2mRo2uc'; // 🔥 AAPKA NEW STOCK CHECKER TOKEN
-const ADMIN_CHAT_ID = '7485181331'; 
+const BOT_TOKEN = '8901855590:AAHFlMQ_LNzOrJ0noP8BPQgnkSAZ2mRo2uc'; // Aapka naya stock bot token
+const ADMIN_CHAT_ID = '7485181331'; // Aapki correct admin ID
 const CHECK_INTERVAL = 15000; // STRICT 15 SECONDS PRECISION LOOP
+const RENDER_URL = 'https://fk-stock-final.onrender.com'; // 🔥 Aapka naya dynamic exact URL locked
 const DB_FILE = path.join(__dirname, 'database.json');
 // ----------------------------------------
-
-// Render URL dynamically detect hogi jab server chalu hoga
-let RENDER_URL = ''; 
 
 const bot = new Telegraf(BOT_TOKEN);
 const activeUsers = {};
@@ -76,28 +74,21 @@ app.get('/', (req, res) => res.status(200).send('Stock Checker Engine Webhook Li
 
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Stock Server listening on port ${PORT}`);
-});
-
-// Setup webhook automatically after server starts
-setTimeout(async () => {
-    // Render par setting out URL khud pull karega ya custom env se
-    RENDER_URL = process.env.RENDER_EXTERNAL_URL || `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
     try {
+        // Force flush pichla fasa session and set new Webhook
         await bot.telegram.deleteWebhook({ drop_pending_updates: true });
         await bot.telegram.setWebhook(`${RENDER_URL}/secret-telegram-webhook`, {
             drop_pending_updates: true 
         });
-        console.log(`🎯 Stock Webhook binded successfully on URL: ${RENDER_URL}`);
+        console.log(`🎯 Stock Webhook successfully binded on: ${RENDER_URL}`);
     } catch (err) {
-        console.log("⚠️ Webhook setup warning: ", err.message);
+        console.log("⚠️ Webhook binding error: ", err.message);
     }
-}, 5000);
+});
 
-// Self-ping loop to keep server hot
+// Self-ping loop to keep server alive
 setInterval(() => {
-    if(RENDER_URL) {
-        axios.get(RENDER_URL).catch(() => {}); 
-    }
+    axios.get(RENDER_URL).catch(() => {}); 
 }, 15000); 
 
 const getProKeyboard = () => {
@@ -145,7 +136,7 @@ bot.start((ctx) => {
         return ctx.reply(`🤖 *Welcome to Flipkart Stock Checker Pro!* Ready to sniff targets!`, getProKeyboard());
     }
     
-    ctx.reply(`🔒 **Access Denied!**\n\nAap abhi approved nahi hain.\nAapki Telegram ID: \`${userId}\`\n\nAdmin ko request bhej di gayi hai.`);
+    ctx.reply(`🔒 **Access Denied!**\n\nAap abhi approved nahi hain.\nAapki Telegram ID: \`${userId}\`\n\nAdmin ko automatic request bhej di gayi hai, wait karo.`);
     
     bot.telegram.sendMessage(ADMIN_CHAT_ID, 
         `🚨 **New Stock Bot Request!**\n\n👤 Name: ${name}\n🆔 ID: \`${userId}\`\n\n👉 Action lein:`,
@@ -211,7 +202,7 @@ function setupStockScraperSystem(ctx, fkLink) {
         id: pid, url: fkLink, mode: 'Stock Checker', interval: intervalId
     });
 
-    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nHar 15 second mein strict check chalega.`);
+    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nHar 15 second mein checking chalu ho gayi hai boss!`);
     checkProductStockStatus(ctx, chatId, pid, fkLink);
 }
 
@@ -251,7 +242,11 @@ async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
         });
         
         const htmlLower = response.data.toString().toLowerCase();
+        
+        // Accurate in-stock indicators (Buy Now / Add To Cart Buttons)
         const hasBuyNowButton = htmlLower.includes('buy now') || htmlLower.includes('add to cart');
+        
+        // Strict negative validation filter
         const isOutOfStockText = htmlLower.includes('currently unavailable') || htmlLower.includes('this item is currently out of stock');
 
         if (hasBuyNowButton && !isOutOfStockText) {
