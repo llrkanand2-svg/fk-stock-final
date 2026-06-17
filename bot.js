@@ -200,7 +200,7 @@ function setupStockScraperSystem(ctx, fkLink) {
         id: pid, url: fkLink, mode: 'Stock Checker', interval: intervalId
     });
 
-    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nAnti-Block Mobile Engine configured. 15 second mein check ho raha hai boss!`);
+    ctx.reply(`🕵️‍♂️ **Undercover Agent Radar Par Lock!**\n\nAnti-Block Mobile Engine configured. 15 second mein strict check chalu!`);
     checkProductStockStatus(ctx, chatId, pid, fkLink);
 }
 
@@ -225,28 +225,29 @@ function killAllOperations(ctx) {
     } else { ctx.reply("⚠️ Koyi active operation chal hi nahi rahi."); }
 }
 
-// --- 🔬 ANTI-BLOCK HIGH-SPEED SNIFFER ENGINE ---
+// --- 🔬 ANTI-BLOCK PINCODE SNIFFER ENGINE ---
 async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
     if (!activeUsers[chatId]) return;
+    
+    // 🔥 LIVE RE-CALCULATE SERIAL NUMBER MATRIX EVERY HIT
     const itemIndex = activeUsers[chatId].findIndex(item => item.id === pid);
     if (itemIndex === -1) return;
 
     try {
         const response = await axios.get(originalUrl, {
             headers: { 
-                // 🔥 REAL ANDROID USER AGENT (Flipkart breaks on script-looking agents)
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Pragma': 'no-cache',
+                'Cookie': 'pincode=125121; sn=125121; amsn=125121;'
             },
             timeout: 12000 
         });
         
         const htmlLower = response.data.toString().toLowerCase();
         
-        // Mobile Layout and Desktop layout triggers
         const hasBuyNowButton = htmlLower.includes('buy now') || 
                                 htmlLower.includes('add to cart') || 
                                 htmlLower.includes('go to cart');
@@ -254,10 +255,12 @@ async function checkProductStockStatus(ctx, chatId, pid, originalUrl) {
         const isOutOfStockText = htmlLower.includes('currently unavailable') || 
                                 htmlLower.includes('this item is currently out of stock');
 
-        // IF IN STOCK AND NOT BLOCKED BY SCRAPER FILTER
         if (hasBuyNowButton && !isOutOfStockText) {
+            // 🔥 Strict Dynamic Serial Number mapping
+            const serialNumber = itemIndex + 1;
+
             await bot.telegram.sendMessage(chatId, 
-                `🚨 **STOCK AAGYA HAII LGA JAKE FASTTT POORA LOOT LO** 🚨\n\n🔥 Bhai Flipkart pr stock wapas aa gaya hai, turant click karo aur order maro! 🔥\n\n🔗 Link:\n${originalUrl}\n\n🛑 Stop Tracking: /stop${itemIndex + 1}`,
+                `🚨 **STOCK AAGYA HAII LGA JAKE FASTTT POORA LOOT LO** 🚨\n\n🔥 Bhai Flipkart pr stock wapas aa gaya hai, turant click karo aur order maro! 🔥\n\n🔗 Link:\n${originalUrl}\n\n🛑 Stop Tracking: /stop${serialNumber}`,
                 { parse_mode: 'HTML' }
             ).catch(() => {});
         }
