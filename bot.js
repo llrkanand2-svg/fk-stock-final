@@ -7,7 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 // --- 🔒 CONFIGURATION HARDLOCKED ---
-const BOT_TOKEN = '8663516925:AAEHVFE4iGM2AOgzYeQzrj3hT1E8125uTEM'; 
+const BOT_TOKEN = '8901855590:AAH9iYDv28cQsJUE8izp_55rICNfBAGgflI'; 
 const ADMIN_CHAT_ID = '7485181331'; 
 const CHECK_INTERVAL = 15000; // STRICT 15 SECONDS
 const RENDER_URL = 'https://fk-stock-final.onrender.com'; 
